@@ -31,7 +31,7 @@ bool BackEnd::exec(const QString &cmd, const QStringList &args, const QString &d
 	proc.setWorkingDirectory(dir);
 	// Won't work in detached mode
 	//proc.setProcessChannelMode(QProcess::ForwardedChannels);
-	QTextStream(stdout) << QString("cd %2; %1 %3").arg(cmd, dir, QString(args.join(' ')));
+	QTextStream(stdout) << QString("cd %2; %1 %3\n").arg(cmd, dir, QString(args.join(' ')));
 	return proc.startDetached();
 }
 
