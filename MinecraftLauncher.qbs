@@ -30,6 +30,16 @@ Project {
             "qml.qrc",
         ]
 
+        Group {
+            name: "OpenSSL Win64"
+            condition: qbs.targetOS.contains("windows")
+            files: [
+                "openssl-1.0.2n-x64_86-win64/libeay32.dll",
+                "openssl-1.0.2n-x64_86-win64/ssleay32.dll",
+            ]
+            qbs.install: true
+        }
+
         Group {     // Properties for the produced executable
             fileTagsFilter: "application"
             qbs.install: true
