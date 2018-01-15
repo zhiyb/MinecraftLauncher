@@ -26,6 +26,8 @@ Project {
         ]
 
         files: [
+            "backend.cpp",
+            "backend.h",
             "main.cpp",
             "qml.qrc",
         ]

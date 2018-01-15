@@ -1,6 +1,7 @@
 import QtQuick 2.9
 import QtQuick.Controls 2.3
 import QtQuick.Layouts 1.3
+import backend 1.0
 
 ApplicationWindow {
     visible: true
@@ -10,6 +11,57 @@ ApplicationWindow {
 
     property bool inProgress: true
 
+    BackEnd {
+        id: backend
+        property var ready: []
+        onReady: function (content, id) {
+            ready[id](content);
+            delete ready[id];
+        }
+    }
+
+    Item {
+        id: mc
+        property string baseDir: "minecraft"
+        property int requests: 0
+
+        function download(url, path, onReady) {
+            backend.ready[requests] = onReady;
+            backend.download(Qt.resolvedUrl(url), baseDir + "/" + path,
+                             false, requests++);
+        }
+
+        function get(url, path, onReady) {
+            backend.ready[requests] = onReady;
+            backend.download(Qt.resolvedUrl(url), baseDir + "/" + path,
+                             true, requests++);
+        }
+
+        function start(version) {
+            get(version.url, "versions/" + version.id, function (content) {
+                text.text = content;
+            });
+        }
+
+        function updateManifest() {
+            inProgress = true;
+
+            var doc = new XMLHttpRequest();
+            doc.onreadystatechange = function() {
+                if (doc.readyState === XMLHttpRequest.DONE) {
+                    inProgress = false;
+                    var manifest = JSON.parse(doc.responseText);
+                    if (manifest === null)
+                        return;
+                    list.model = manifest.versions;
+                }
+            }
+
+            doc.open("GET", "https://launchermeta.mojang.com/mc/game/version_manifest.json");
+            doc.send();
+        }
+    }
+
     BusyIndicator {
         anchors.fill: parent
         visible: inProgress
@@ -18,10 +70,12 @@ ApplicationWindow {
     ColumnLayout {
         anchors.fill: parent
         enabled: !inProgress
+        spacing: 0
 
         ScrollView {
             Layout.fillWidth: true
             Layout.fillHeight: true
+            clip: true
 
             ListView {
                 id: list
@@ -43,7 +97,19 @@ ApplicationWindow {
                     radius: 5
                     opacity: 0.6
                 }
+
+                onCurrentIndexChanged: function(index) {
+                    var obj = list.model[list.currentIndex];
+                    text.text = JSON.stringify(obj);
+                }
             }
+        }
+
+        Text {
+            id: text
+            wrapMode: Text.Wrap
+            textFormat: Text.PlainText
+            Layout.fillWidth: true
         }
 
         Item {
@@ -54,23 +120,10 @@ ApplicationWindow {
         Button {
             Layout.fillWidth: true
             text: qsTr("Start!")
+
+            onClicked: mc.start(list.model[list.currentIndex])
         }
     }
 
-    Component.onCompleted: function() {
-        var doc = new XMLHttpRequest();
-        doc.onreadystatechange = function() {
-            if (doc.readyState === XMLHttpRequest.DONE) {
-                inProgress = false;
-                var manifest = JSON.parse(doc.responseText);
-                if (manifest === null)
-                    return;
-                list.model = manifest.versions;
-                console.log(JSON.stringify(manifest.versions));
-            }
-        }
-
-        doc.open("GET", "https://launchermeta.mojang.com/mc/game/version_manifest.json");
-        doc.send();
-    }
+    Component.onCompleted: mc.updateManifest()
 }
