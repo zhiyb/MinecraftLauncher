@@ -10,12 +10,6 @@ BackEnd::BackEnd(QObject *parent) : QObject(parent)
 bool BackEnd::download(const QUrl &url, const QString &path,
 		       const bool get, const int id)
 {
-	QDir dir;
-	if (!dir.mkpath(path)) {
-		qDebug() << "Cannot create" << path;
-		return false;
-	}
-
 	qDebug() << "Downloading" << url << "to" << path;
 
 	auto reply = manager.get(QNetworkRequest(url));
@@ -36,24 +30,18 @@ void BackEnd::finished(QNetworkReply *reply)
 		emit done(id);
 
 	QString path = reply->property("path").toString();
-	if (!QDir().mkpath(path)) {
-		qDebug() << "Cannot create" << path;
+	QString dir = QFileInfo(path).path();
+	if (!QDir().mkpath(dir)) {
+		qDebug() << "Cannot create" << dir;
 		return;
 	}
 
-	QUrl url = reply->url();
-	QString file = QDir(path).filePath(QFileInfo(url.path()).fileName());
-	if (path.isEmpty()) {
-		qDebug() << "Cannot resolve basename from" << path << url;
+	QFile file(path);
+	if (!file.open(QIODevice::WriteOnly)) {
+		qDebug() << "Cannot write to file" << path;
 		return;
 	}
 
-	QFile f(file);
-	if (!f.open(QIODevice::WriteOnly)) {
-		qDebug() << "Cannot write to file" << file;
-		return;
-	}
-
-	f.write(data);
-	f.close();
+	file.write(data);
+	file.close();
 }

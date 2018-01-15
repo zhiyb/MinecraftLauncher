@@ -15,7 +15,9 @@ ApplicationWindow {
         id: backend
         property var ready: []
         onReady: function (content, id) {
-            ready[id](content);
+            var func = ready[id];
+            if (func !== null)
+                func(content);
             delete ready[id];
         }
     }
@@ -37,12 +39,6 @@ ApplicationWindow {
                              true, requests++);
         }
 
-        function start(version) {
-            get(version.url, "versions/" + version.id, function (content) {
-                text.text = content;
-            });
-        }
-
         function updateManifest() {
             inProgress = true;
 
@@ -59,6 +55,23 @@ ApplicationWindow {
 
             doc.open("GET", "https://launchermeta.mojang.com/mc/game/version_manifest.json");
             doc.send();
+        }
+
+        function downloadArtifact(artifact, type) {
+            download(artifact.url, type + "/" + artifact.path);
+        }
+
+        function downloadLibraries(libraries) {
+            for (var i in libraries)
+                downloadArtifact(libraries[i].downloads.artifact, "libraries");
+        }
+
+        function start(version) {
+            var path = "versions/" + version.id + "/" + version.id + ".json";
+            get(version.url, path, function (content) {
+                var obj = JSON.parse(content);
+                downloadLibraries(obj.libraries);
+            });
         }
     }
 
