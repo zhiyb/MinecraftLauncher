@@ -12,6 +12,8 @@ public:
 
 	Q_INVOKABLE bool download(const QUrl &url, const QString &path,
 				  const bool get = false, const int id = 0);
+	Q_INVOKABLE bool exec(const QString &cmd, const QStringList &args,
+			      const QString &dir = QString::null);
 
 signals:
 	void ready(const QString &content,  const int &id);

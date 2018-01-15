@@ -10,13 +10,29 @@ BackEnd::BackEnd(QObject *parent) : QObject(parent)
 bool BackEnd::download(const QUrl &url, const QString &path,
 		       const bool get, const int id)
 {
-	qDebug() << "Downloading" << url << "to" << path;
-
+#if 0
+	if (!get) {
+		emit done(id);
+		return true;
+	}
+#endif
 	auto reply = manager.get(QNetworkRequest(url));
 	reply->setProperty("id", id);
 	reply->setProperty("get", get);
 	reply->setProperty("path", path);
 	return true;
+}
+
+bool BackEnd::exec(const QString &cmd, const QStringList &args, const QString &dir)
+{
+	QProcess proc;
+	proc.setProgram(cmd);
+	proc.setArguments(args);
+	proc.setWorkingDirectory(dir);
+	// Won't work in detached mode
+	//proc.setProcessChannelMode(QProcess::ForwardedChannels);
+	QTextStream(stdout) << QString("cd %2; %1 %3").arg(cmd, dir, QString(args.join(' ')));
+	return proc.startDetached();
 }
 
 void BackEnd::finished(QNetworkReply *reply)
