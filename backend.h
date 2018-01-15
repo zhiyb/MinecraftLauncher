@@ -11,7 +11,8 @@ public:
 	explicit BackEnd(QObject *parent = nullptr);
 
 	Q_INVOKABLE bool download(const QUrl &url, const QString &path,
-				  const bool get = false, const int id = 0);
+				  const bool get = false, const int id = 0,
+				  const QString &sha1 = QString::null);
 	Q_INVOKABLE bool exec(const QString &cmd, const QStringList &args,
 			      const QString &dir = QString::null);
 

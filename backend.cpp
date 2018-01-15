@@ -8,18 +8,37 @@ BackEnd::BackEnd(QObject *parent) : QObject(parent)
 }
 
 bool BackEnd::download(const QUrl &url, const QString &path,
-		       const bool get, const int id)
+		       const bool get, const int id, const QString &sha1)
 {
-#if 0
-	if (!get) {
-		emit done(id);
+	// Skip if file integrity check passed
+	if (sha1 != QString::null && QFileInfo(path).exists()) {
+		QFile f(path);
+		if (!f.open(QIODevice::ReadOnly))
+			goto download;
+		QByteArray data;
+		QCryptographicHash hash(QCryptographicHash::Sha1);
+		if (get) {
+			data = f.readAll();
+			hash.addData(data);
+		} else {
+			if (!hash.addData(&f))
+				goto download;
+		}
+		if (QString(hash.result().toHex()) != sha1)
+			goto download;
+		if (get)
+			emit ready(data, id);
+		else
+			emit done(id);
 		return true;
 	}
-#endif
+
+download:
 	auto reply = manager.get(QNetworkRequest(url));
 	reply->setProperty("id", id);
 	reply->setProperty("get", get);
 	reply->setProperty("path", path);
+	reply->setProperty("sha1", sha1);
 	return true;
 }
 
@@ -38,6 +57,13 @@ bool BackEnd::exec(const QString &cmd, const QStringList &args, const QString &d
 void BackEnd::finished(QNetworkReply *reply)
 {
 	QByteArray data = reply->readAll();
+
+	// Check file integrity
+	QString sha1 = reply->property("sha1").toString();
+	if (sha1 != QString::null) {
+		if (sha1 != QCryptographicHash::hash(data, QCryptographicHash::Sha1).toHex())
+			qDebug() << "Warning:" << reply->url().toString() << "download unsuccessful";
+	}
 
 	int id = reply->property("id").toInt();
 	if (reply->property("get").toBool())

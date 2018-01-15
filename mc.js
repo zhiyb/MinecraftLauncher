@@ -35,16 +35,16 @@ function uniq(a) {
     });
 }
 
-function download(url, path, onReady) {
+function download(url, path, sha1, onReady) {
     backend.requests[requestId] = onReady;
     backend.requestNum++;
-    backend.download(url, baseDir + "/" + path, false, requestId++);
+    backend.download(url, baseDir + "/" + path, false, requestId++, sha1);
 }
 
-function get(url, path, onReady) {
+function get(url, path, sha1, onReady) {
     backend.requests[requestId] = onReady;
     backend.requestNum++;
-    backend.download(url, baseDir + "/" + path, true, requestId++);
+    backend.download(url, baseDir + "/" + path, true, requestId++, sha1);
 }
 
 function updateManifest() {
@@ -95,7 +95,7 @@ function checkRules(rules) {
 }
 
 function downloadArtifact(artifact, type) {
-    download(artifact.url, type + "/" + artifact.path);
+    download(artifact.url, type + "/" + artifact.path, artifact.sha1);
 }
 
 function downloadLibraries(libs) {
@@ -115,12 +115,12 @@ function downloadLibraries(libs) {
 function downloadAsset(asset) {
     var hash = asset.hash.substr(0, 2) + "/" + asset.hash;
     var path = "assets/objects/" + hash;
-    download(assetsUrl + "/" + hash, path);
+    download(assetsUrl + "/" + hash, path, asset.hash);
 }
 
 function downloadAssets(index) {
     var path = "assets/indexes/" + index.id + ".json";
-    get(index.url, path, function(content) {
+    get(index.url, path, index.sha1, function(content) {
         var obj = JSON.parse(content);
         for (var key in obj.objects)
             downloadAsset(obj.objects[key]);
@@ -128,12 +128,12 @@ function downloadAssets(index) {
 }
 
 function downloadClient(obj, id) {
-    download(obj.client.url, "versions/" + id + "/" + id + ".jar");
-    download(obj.server.url, "versions/" + id + "/" + id + "-server.jar");
+    download(obj.client.url, "versions/" + id + "/" + id + ".jar", obj.client.sha1);
+    download(obj.server.url, "versions/" + id + "/" + id + "-server.jar", obj.server.sha1);
 }
 
 function downloadLogConfig(obj) {
-    download(obj.url, "assets/log_configs/" + obj.id);
+    download(obj.url, "assets/log_configs/" + obj.id, obj.sha1);
 }
 
 function parseArguments(args) {
@@ -191,7 +191,7 @@ function start(index) {
     inProgress = true;
     var version = versions[index];
     var path = "versions/" + version.id + "/" + version.id + ".json";
-    get(version.url, path, function(content) {
+    get(version.url, path, null, function(content) {
         var obj = JSON.parse(content);
         downloadLibraries(obj.libraries);
         downloadAssets(obj.assetIndex);
