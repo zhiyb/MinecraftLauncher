@@ -54,6 +54,31 @@ ApplicationWindow {
         anchors.fill: parent
         enabled: !inProgress
 
+        RowLayout {
+            Layout.fillWidth: true
+
+            Text {
+                text: qsTr("Player name: ")
+            }
+
+            TextField {
+                placeholderText: qsTr("Player name")
+                text: MC.params.auth_player_name
+                onEditingFinished: MC.params.auth_player_name = text
+            }
+
+            Text {
+                text: qsTr("UUID:")
+            }
+
+            TextField {
+                placeholderText: qsTr("UUID")
+                text: MC.params.auth_uuid
+                Layout.fillWidth: true
+                onEditingFinished: MC.params.auth_uuid = text
+            }
+        }
+
         ScrollView {
             Layout.fillWidth: true
             Layout.fillHeight: true

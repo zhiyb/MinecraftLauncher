@@ -4,8 +4,8 @@ var assetsUrl = "http://resources.download.minecraft.net";
 
 var params = {
     auth_player_name: "Steve",
-    auth_uuid: 0,
-    auth_access_token: 0,
+    auth_uuid: "0",
+    auth_access_token: "0",
     user_type: "legacy",
 
     game_directory: ".",
