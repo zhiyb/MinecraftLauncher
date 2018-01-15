@@ -7,6 +7,16 @@ BackEnd::BackEnd(QObject *parent) : QObject(parent)
 	connect(&manager, &QNetworkAccessManager::finished, this, &BackEnd::finished);
 }
 
+bool BackEnd::postJson(const QString &url, const QString &data, const int id)
+{
+	QNetworkRequest request(url);
+	request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+	auto reply = manager.post(request, data.toLocal8Bit());
+	reply->setProperty("id", id);
+	reply->setProperty("post", true);
+	return true;
+}
+
 bool BackEnd::download(const QUrl &url, const QString &path,
 		       const bool get, const int id, const QString &sha1)
 {
@@ -57,6 +67,13 @@ bool BackEnd::exec(const QString &cmd, const QStringList &args, const QString &d
 void BackEnd::finished(QNetworkReply *reply)
 {
 	QByteArray data = reply->readAll();
+	int id = reply->property("id").toInt();
+
+	// POST transfer
+	if (reply->property("post").isValid()) {
+		emit ready(QString(data), id);
+		return;
+	}
 
 	// Check file integrity
 	QString sha1 = reply->property("sha1").toString();
@@ -65,7 +82,6 @@ void BackEnd::finished(QNetworkReply *reply)
 			qDebug() << "Warning:" << reply->url().toString() << "download unsuccessful";
 	}
 
-	int id = reply->property("id").toInt();
 	if (reply->property("get").toBool())
 		emit ready(QString(data), id);
 	else

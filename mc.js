@@ -1,6 +1,7 @@
 var baseDir = "minecraft";
 var manifestUrl = "https://launchermeta.mojang.com/mc/game/version_manifest.json";
 var assetsUrl = "http://resources.download.minecraft.net";
+var profileUrl = "https://api.mojang.com/profiles/minecraft";
 
 var params = {
     auth_player_name: "Steve",
@@ -33,6 +34,12 @@ function uniq(a) {
     return a.filter(function(item) {
         return seen.hasOwnProperty(item) ? false : (seen[item] = true);
     });
+}
+
+function post(url, data, onReady) {
+    backend.requests[requestId] = onReady;
+    backend.requestNum++;
+    backend.postJson(url, data, requestId++);
 }
 
 function download(url, path, sha1, onReady) {
@@ -174,6 +181,8 @@ function classPaths(libs, id) {
 }
 
 function launch(obj) {
+    params["auth_player_name"] = playerName.text;
+    params["auth_uuid"] = uuid.text;
     params["version_name"] = obj.id;
     params["assets_index_name"] = obj.assets;
     params["version_type"] = obj.type;
@@ -198,8 +207,22 @@ function start(index) {
         downloadLogConfig(obj.logging.client.file);
         downloadClient(obj.downloads, version.id);
         backend.finish = function() {
+            backend.finish = undefined;
             inProgress = false;
             launch(obj);
+        }
+    });
+}
+
+function getUUID(player, onReady) {
+    post(profileUrl, JSON.stringify([player]), function(content) {
+        var a = JSON.parse(content);
+        if (a !== null && a.length !== 0) {
+            var regex = /([0-9a-f]{8})([0-9a-f]{4})([0-9a-f]{4})([0-9a-f]{4})([0-9a-f]{12})/ig;
+            onReady(a[0].id.replace(regex, function(m0, m1, m2, m3, m4, m5) {
+                return m1 + "-" + m2 + "-" + m3 + "-" + m4 + "-" + m5;
+            }));
+            params["user_type"] = a[0].legacy === true ? "legacy" : "mojang";
         }
     });
 }

@@ -52,6 +52,7 @@ ApplicationWindow {
 
     ColumnLayout {
         anchors.fill: parent
+        anchors.margins: spacing
         enabled: !inProgress
 
         RowLayout {
@@ -62,9 +63,12 @@ ApplicationWindow {
             }
 
             TextField {
+                id: playerName
                 placeholderText: qsTr("Player name")
                 text: MC.params.auth_player_name
-                onEditingFinished: MC.params.auth_player_name = text
+                onEditingFinished: MC.getUUID(text, function(s) {
+                    uuid.text = s;
+                });
             }
 
             Text {
@@ -72,10 +76,10 @@ ApplicationWindow {
             }
 
             TextField {
+                id: uuid
                 placeholderText: qsTr("UUID")
                 text: MC.params.auth_uuid
                 Layout.fillWidth: true
-                onEditingFinished: MC.params.auth_uuid = text
             }
         }
 
@@ -130,5 +134,10 @@ ApplicationWindow {
         }
     }
 
-    Component.onCompleted: MC.updateManifest()
+    Component.onCompleted: function() {
+        MC.updateManifest();
+        MC.getUUID(playerName.text, function(s) {
+            uuid.text = s;
+        });
+    }
 }
