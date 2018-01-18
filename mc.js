@@ -115,7 +115,8 @@ function downloadLibraries(libs) {
             if (natives !== undefined)
                 downloadArtifact(lib.downloads.classifiers[natives], "libraries");
         }
-        downloadArtifact(lib.downloads.artifact, "libraries");
+        if (lib.downloads.artifact !== undefined)
+            downloadArtifact(lib.downloads.artifact, "libraries");
     }
 }
 
@@ -174,7 +175,8 @@ function classPaths(libs, id) {
             if (natives !== undefined)
                 cp = cp.concat("libraries/", lib.downloads.classifiers[natives].path, sep);
         }
-        cp = cp.concat("libraries/", lib.downloads.artifact.path, sep);
+        if (lib.downloads.artifact !== undefined)
+            cp = cp.concat("libraries/", lib.downloads.artifact.path, sep);
     }
     cp = cp.concat("versions/" + id + "/" + id + ".jar");
     return cp;
@@ -188,10 +190,26 @@ function launch(obj) {
     params["version_type"] = obj.type;
     params["classpath"] = classPaths(obj.libraries, obj.id);
     params["path"] = "assets/log_configs/" + obj.logging.client.file.id;
-    var args = parseArguments(obj.arguments.jvm);
-    args = args.concat(parseArguments(obj.logging.client.argument));
-    args.push(obj.mainClass);
-    args = args.concat(parseArguments(obj.arguments.game));
+
+    var args = [];
+    switch (obj.minimumLauncherVersion) {
+    case 21:
+        args = args.concat(parseArguments(obj.arguments.jvm));
+        args = args.concat(parseArguments(obj.logging.client.argument));
+        args.push(obj.mainClass);
+        args = args.concat(parseArguments(obj.arguments.game));
+        break;
+    case 18:
+        args = args.concat(parseArguments(["-Djava.library.path=${natives_directory}",
+                                           "-cp", "${classpath}"]));
+        args.push(obj.mainClass);
+        args = args.concat(parseArguments(obj.minecraftArguments.split(" ")));
+        break;
+    default:
+        console.log("Unsupport launcher version: " + obj.minimumLauncherVersion);
+        return;
+    }
+
     if (backend.exec("java.exe", args, baseDir))
         msg.visible = true;
 }
@@ -202,10 +220,13 @@ function start(index) {
     var path = "versions/" + version.id + "/" + version.id + ".json";
     get(version.url, path, null, function(content) {
         var obj = JSON.parse(content);
+
+        // Common to all launcher versions
         downloadLibraries(obj.libraries);
         downloadAssets(obj.assetIndex);
         downloadLogConfig(obj.logging.client.file);
         downloadClient(obj.downloads, version.id);
+
         backend.finish = function() {
             backend.finish = undefined;
             inProgress = false;
