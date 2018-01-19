@@ -1,6 +1,9 @@
 #include <QtCore>
 #include <QtNetwork>
+#include <unzipper.h>
 #include "backend.h"
+
+using namespace zipper;
 
 BackEnd::BackEnd(QObject *parent) : QObject(parent)
 {
@@ -49,6 +52,14 @@ download:
 	reply->setProperty("get", get);
 	reply->setProperty("path", path);
 	reply->setProperty("sha1", sha1);
+	return true;
+}
+
+bool BackEnd::extract(const QString &src, const QString &dst, const QStringList &excludes)
+{
+	Unzipper unzip(src.toLocal8Bit().data());
+	unzip.extract(dst.toLocal8Bit().data());
+	unzip.close();
 	return true;
 }
 

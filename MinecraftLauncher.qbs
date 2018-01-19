@@ -3,9 +3,78 @@ import qbs
 Project {
     minimumQbsVersion: "1.7.1"
 
+    FileTagger {
+        patterns: "*.dll"
+        fileTags: ["dll"]
+    }
+
+    Product {
+        name: "OpenSSL Win64"
+        condition: qbs.targetOS.contains("windows")
+        files: ["openssl-1.0.2n-x64_86-win64/**"]
+
+        Group {
+            fileTagsFilter: "dll"
+            qbs.install: true
+        }
+    }
+
+    Product {
+        name: "zlib Win64"
+        condition: qbs.targetOS.contains("windows")
+        files: ["zlib-win64/**"]
+
+        Export {
+            Depends {name: "cpp"}
+            cpp.includePaths: ["zlib-win64/include"]
+            cpp.libraryPaths: ["zlib-win64/lib"]
+
+            Properties {
+                condition: qbs.buildVariant == "debug"
+                cpp.staticLibraries: ["zlibstaticd"]
+            }
+
+            Properties {
+                condition: qbs.buildVariant == "release"
+                cpp.staticLibraries: ["zlibstatic"]
+            }
+        }
+    }
+
+    Product {
+        name: "Zipper Win64"
+        condition: qbs.targetOS.contains("windows")
+        files: ["zipper-win64/**"]
+
+        Export {
+            Depends {name: "cpp"}
+            Depends {name: "zlib Win64"}
+            cpp.includePaths: ["zipper-win64/include/zipper"]
+            cpp.libraryPaths: ["zipper-win64/lib"]
+
+            Properties {
+                condition: qbs.buildVariant == "debug"
+                cpp.staticLibraries: ["libZipper-staticd"]
+            }
+
+            Properties {
+                condition: qbs.buildVariant == "release"
+                cpp.staticLibraries: ["libZipper-static"]
+            }
+        }
+    }
+
     CppApplication {
-        Depends { name: "Qt.core" }
-        Depends { name: "Qt.quick" }
+        Depends {name: "Qt.core"}
+        Depends {name: "Qt.quick"}
+        Depends {
+            name: "OpenSSL Win64"
+            condition: qbs.targetOS.contains("windows")
+        }
+        Depends {
+            name: "Zipper Win64"
+            condition: qbs.targetOS.contains("windows")
+        }
 
         // Additional import path used to resolve QML modules in Qt Creator's code model
         property pathList qmlImportPaths: []
@@ -31,16 +100,6 @@ Project {
             "main.cpp",
             "qml.qrc",
         ]
-
-        Group {
-            name: "OpenSSL Win64"
-            condition: qbs.targetOS.contains("windows")
-            files: [
-                "openssl-1.0.2n-x64_86-win64/libeay32.dll",
-                "openssl-1.0.2n-x64_86-win64/ssleay32.dll",
-            ]
-            qbs.install: true
-        }
 
         Group {     // Properties for the produced executable
             fileTagsFilter: "application"

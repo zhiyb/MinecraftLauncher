@@ -54,6 +54,11 @@ function get(url, path, sha1, onReady) {
     backend.download(url, baseDir + "/" + path, true, requestId++, sha1);
 }
 
+function extract(src, dst, param) {
+    var excludes = param === undefined ? [] : param.exclude;
+    backend.extract(baseDir + "/" + src, baseDir + "/" + dst, excludes);
+}
+
 function updateManifest() {
     inProgress = true;
 
@@ -114,9 +119,9 @@ function downloadLibraries(libs) {
             var natives = lib.natives[params["os"]];
             if (natives !== undefined)
                 downloadArtifact(lib.downloads.classifiers[natives], "libraries");
-        }
-        if (lib.downloads.artifact !== undefined)
+        } else if (lib.downloads.artifact !== undefined) {
             downloadArtifact(lib.downloads.artifact, "libraries");
+        }
     }
 }
 
@@ -173,10 +178,11 @@ function classPaths(libs, id) {
         if (lib.natives !== undefined) {
             var natives = lib.natives[params["os"]];
             if (natives !== undefined)
-                cp = cp.concat("libraries/", lib.downloads.classifiers[natives].path, sep);
-        }
-        if (lib.downloads.artifact !== undefined)
+                extract("libraries/" + lib.downloads.classifiers[natives].path,
+                        params["natives_directory"], lib.extract);
+        } else if (lib.downloads.artifact !== undefined) {
             cp = cp.concat("libraries/", lib.downloads.artifact.path, sep);
+        }
     }
     cp = cp.concat("versions/" + id + "/" + id + ".jar");
     return cp;
