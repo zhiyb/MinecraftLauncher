@@ -142,7 +142,8 @@ function downloadAssets(index) {
 
 function downloadClient(obj, id) {
     download(obj.client.url, "versions/" + id + "/" + id + ".jar", obj.client.sha1);
-    download(obj.server.url, "versions/" + id + "/" + id + "-server.jar", obj.server.sha1);
+    if (obj.server !== undefined)
+        download(obj.server.url, "versions/" + id + "/" + id + "-server.jar", obj.server.sha1);
 }
 
 function downloadLogConfig(obj) {
@@ -195,7 +196,8 @@ function launch(obj) {
     params["assets_index_name"] = obj.assets;
     params["version_type"] = obj.type;
     params["classpath"] = classPaths(obj.libraries, obj.id);
-    params["path"] = "assets/log_configs/" + obj.logging.client.file.id;
+    if (obj.logging !== undefined)
+        params["path"] = "assets/log_configs/" + obj.logging.client.file.id;
 
     var args = [];
     switch (obj.minimumLauncherVersion) {
@@ -213,7 +215,7 @@ function launch(obj) {
         break;
     default:
         console.log("Unsupport launcher version: " + obj.minimumLauncherVersion);
-        return;
+        break;
     }
 
     if (backend.exec("java.exe", args, baseDir))
@@ -230,8 +232,10 @@ function start(index) {
         // Common to all launcher versions
         downloadLibraries(obj.libraries);
         downloadAssets(obj.assetIndex);
-        downloadLogConfig(obj.logging.client.file);
         downloadClient(obj.downloads, version.id);
+
+        if (obj.logging !== undefined)
+            downloadLogConfig(obj.logging.client.file);
 
         backend.finish = function() {
             backend.finish = undefined;
