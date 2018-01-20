@@ -55,10 +55,18 @@ download:
 	return true;
 }
 
-bool BackEnd::extract(const QString &src, const QString &dst, const QStringList &excludes)
+bool BackEnd::extract(const QString &src, const QString &dst,
+		      const QStringList &excludes)
 {
 	Unzipper unzip(src.toLocal8Bit().data());
-	unzip.extract(dst.toLocal8Bit().data());
+	for (auto &e: unzip.entries()) {
+		bool exclude = false;
+		foreach (auto &ex, excludes)
+			if (QString::fromStdString(e.name).startsWith(ex, Qt::CaseInsensitive))
+				exclude = true;
+		if (!exclude)
+			unzip.extractEntry(e.name, dst.toStdString());
+	}
 	unzip.close();
 	return true;
 }
