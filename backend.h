@@ -18,6 +18,7 @@ public:
 				 const QStringList &excludes);
 	Q_INVOKABLE bool exec(const QString &cmd, const QStringList &args,
 			      const QString &dir = QString::null);
+	Q_INVOKABLE bool copy(const QString &src, const QString &dst);
 
 signals:
 	void ready(const QString &content,  const int &id);

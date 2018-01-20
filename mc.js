@@ -6,6 +6,7 @@ var profileUrl = "https://api.mojang.com/profiles/minecraft";
 var params = {
     auth_player_name: "Steve",
     auth_uuid: "0",
+    auth_session: "0",
     auth_access_token: "0",
     user_type: "legacy",
 
@@ -57,6 +58,10 @@ function get(url, path, sha1, onReady) {
 function extract(src, dst, param) {
     var excludes = param === undefined ? [] : param.exclude;
     backend.extract(baseDir + "/" + src, baseDir + "/" + dst, excludes);
+}
+
+function copy(src, dst) {
+    backend.copy(baseDir + "/" + src, baseDir + "/" + dst);
 }
 
 function updateManifest() {
@@ -189,6 +194,44 @@ function classPaths(libs, id) {
     return cp;
 }
 
+function copyAsset(hash, dst) {
+    copy("assets/objects/" + hash.substr(0, 2) + "/" + hash, dst);
+}
+
+function copyAssets(index, func)
+{
+    var path = "assets/indexes/" + index.id + ".json";
+    get(index.url, path, index.sha1, function(content) {
+        var obj = JSON.parse(content);
+        for (var key in obj.objects)
+            copyAsset(obj.objects[key].hash, params["game_assets"] + "/" + key);
+        func();
+    });
+}
+
+function run(obj) {
+    var args = [];
+    switch (obj.minimumLauncherVersion) {
+    case 21:
+        args = args.concat(parseArguments(obj.arguments.jvm));
+        args = args.concat(parseArguments(obj.logging.client.argument));
+        args.push(obj.mainClass);
+        args = args.concat(parseArguments(obj.arguments.game));
+        break;
+    default:
+        console.log("Unsupport launcher version: " + obj.minimumLauncherVersion);
+    case 18:
+        args = args.concat(parseArguments(["-Djava.library.path=${natives_directory}",
+                                           "-cp", "${classpath}"]));
+        args.push(obj.mainClass);
+        args = args.concat(parseArguments(obj.minecraftArguments.split(" ")));
+        break;
+    }
+
+    if (backend.exec("java.exe", args, baseDir))
+        msg.visible = true;
+}
+
 function launch(obj) {
     params["auth_player_name"] = playerName.text;
     params["auth_uuid"] = uuid.text;
@@ -199,27 +242,12 @@ function launch(obj) {
     if (obj.logging !== undefined)
         params["path"] = "assets/log_configs/" + obj.logging.client.file.id;
 
-    var args = [];
-    switch (obj.minimumLauncherVersion) {
-    case 21:
-        args = args.concat(parseArguments(obj.arguments.jvm));
-        args = args.concat(parseArguments(obj.logging.client.argument));
-        args.push(obj.mainClass);
-        args = args.concat(parseArguments(obj.arguments.game));
-        break;
-    case 18:
-        args = args.concat(parseArguments(["-Djava.library.path=${natives_directory}",
-                                           "-cp", "${classpath}"]));
-        args.push(obj.mainClass);
-        args = args.concat(parseArguments(obj.minecraftArguments.split(" ")));
-        break;
-    default:
-        console.log("Unsupport launcher version: " + obj.minimumLauncherVersion);
-        break;
+    if (obj.assets === "legacy") {
+        params["game_assets"] = "assets/virtual/legacy";
+        copyAssets(obj.assetIndex, function() {run(obj);});
+    } else {
+        run(obj);
     }
-
-    if (backend.exec("java.exe", args, baseDir))
-        msg.visible = true;
 }
 
 function start(index) {

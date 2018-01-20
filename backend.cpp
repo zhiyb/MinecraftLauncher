@@ -75,6 +75,23 @@ bool BackEnd::exec(const QString &cmd, const QStringList &args, const QString &d
 	return proc.startDetached();
 }
 
+bool BackEnd::copy(const QString &src, const QString &dst)
+{
+	QString dir = QFileInfo(dst).path();
+	if (!QDir().mkpath(dir)) {
+		qDebug() << "Cannot create" << dir;
+		return false;
+	}
+
+	QFile::remove(dst);
+	if (!QFile::copy(src, dst)) {
+		qDebug() << "Error copying" << src << "to" << dst;
+		return false;
+	}
+
+	return true;
+}
+
 void BackEnd::finished(QNetworkReply *reply)
 {
 	QByteArray data = reply->readAll();
@@ -90,7 +107,7 @@ void BackEnd::finished(QNetworkReply *reply)
 	QString sha1 = reply->property("sha1").toString();
 	if (sha1 != QString::null) {
 		if (sha1 != QCryptographicHash::hash(data, QCryptographicHash::Sha1).toHex())
-			qDebug() << "Warning:" << reply->url().toString() << "download unsuccessful";
+			qDebug() << "Download unsuccessful:" << reply->url().toString();
 	}
 
 	if (reply->property("get").toBool())
