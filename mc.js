@@ -9,6 +9,7 @@ var params = {
     auth_session: "0",
     auth_access_token: "0",
     user_type: "legacy",
+    user_properties: "{}",
 
     game_directory: ".",
     assets_root: "assets",
@@ -24,6 +25,7 @@ var params = {
     resolution_height: 600,
 
     os: "windows",
+    arch: "64",
 };
 
 var requestId = 0;
@@ -92,6 +94,7 @@ function updateManifest() {
 function checkRules(rules) {
     if (rules === undefined)
         return true;
+    var allow = false;
     for (var i in rules) {
         var rule = rules[i];
         // AND operation
@@ -106,9 +109,10 @@ function checkRules(rules) {
                 if (params[key] !== rule.features[key])
                     match = false;
         }
-        return match == (rule.action === "allow");
+        if (match)
+            allow = rule.action === "allow";
     }
-    return false;
+    return allow;
 }
 
 function downloadArtifact(artifact, type) {
@@ -121,7 +125,7 @@ function downloadLibraries(libs) {
         if (!checkRules(lib.rules))
             continue;
         if (lib.natives !== undefined) {
-            var natives = lib.natives[params["os"]];
+            var natives = parseArguments(lib.natives[params["os"]])[0];
             if (natives !== undefined)
                 downloadArtifact(lib.downloads.classifiers[natives], "libraries");
         } else if (lib.downloads.artifact !== undefined) {
@@ -182,7 +186,7 @@ function classPaths(libs, id) {
         if (!checkRules(lib.rules))
             continue;
         if (lib.natives !== undefined) {
-            var natives = lib.natives[params["os"]];
+            var natives = parseArguments(lib.natives[params["os"]])[0];
             if (natives !== undefined)
                 extract("libraries/" + lib.downloads.classifiers[natives].path,
                         params["natives_directory"], lib.extract);
